@@ -1,0 +1,19 @@
+{
+  "prefix": "",
+  "test_dir": "",
+  "demo_dir": "",
+  "gen_dir": "E:/Files/Program/homework/bat/test",
+  "test_file": ".exe",
+  "demo_file": "-demo.exe",
+  "gen_file": "3-b8-gen.exe",
+  "use_gen": true,
+  "auto_clean": true,
+  "compare_args": "",
+  "times": "100",
+  "time_limit": "1.0",
+  "gh_token": "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",
+  "gh_url": "https://github.com/yxr-yolanda/TJ_HLLP_test/tree/main/generator",
+  "gh_branch": "main",
+  "gh_save_dir": "E:/Files/Program/homework/bat/test",
+  "gh_proxy": "http://127.0.0.1:7897"
+}
