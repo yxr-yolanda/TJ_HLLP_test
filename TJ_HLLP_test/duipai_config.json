@@ -1,0 +1,21 @@
+{
+  "prefix": "3-b8",
+  "test_dir": "E:/Files/Program/homework/hw",
+  "demo_dir": "E:/Files/Program/homework/bat/hw02",
+  "gen_dir": "E:/Files/Program/homework/bat/hw02",
+  "test_file": "3-b8.exe",
+  "demo_file": "3-b8-demo.exe",
+  "gen_file": "3-b8-gen.exe",
+  "use_gen": true,
+  "auto_clean": true,
+  "compare_args": "",
+  "times": "100",
+  "time_limit": "1.0",
+  "test_use_subfolder": true,
+  "test_subfolder": "3-b8",
+  "gh_token": "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",
+  "gh_url": "https://github.com/yxr-yolanda/TJ_HLLP_test/tree/main/generator",
+  "gh_branch": "main",
+  "gh_proxy": "http://127.0.0.1:7897",
+  "gh_save_dir": "E:/Files/Program/homework/bat/test"
+}

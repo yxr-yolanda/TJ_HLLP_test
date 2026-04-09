@@ -1,0 +1,412 @@
+=== Run #1 ===
+Target Valid Value: -10
+  Illegal Input: 138
+  Valid Input:   -10
+
+=== Run #2 ===
+Target Valid Value: -9
+  Illegal Input: 118
+  Illegal Input: 177
+  Valid Input:   -9
+
+=== Run #3 ===
+Target Valid Value: -8
+  Illegal Input: -54
+  Valid Input:   -8
+
+=== Run #4 ===
+Target Valid Value: -7
+  Illegal Input: 99
+  Illegal Input: -62
+  Illegal Input: -23
+  Valid Input:   -7
+
+=== Run #5 ===
+Target Valid Value: -6
+  Illegal Input: -65
+  Illegal Input: 190
+  Illegal Input: 81
+  Valid Input:   -6
+
+=== Run #6 ===
+Target Valid Value: -5
+  Illegal Input: -65
+  Illegal Input: 190
+  Illegal Input: 81
+  Valid Input:   -5
+
+=== Run #7 ===
+Target Valid Value: -4
+  Illegal Input: -65
+  Illegal Input: 190
+  Illegal Input: 81
+  Valid Input:   -4
+
+=== Run #8 ===
+Target Valid Value: -3
+  Illegal Input: -65
+  Illegal Input: 190
+  Illegal Input: 81
+  Valid Input:   -3
+
+=== Run #9 ===
+Target Valid Value: -2
+  Illegal Input: -65
+  Illegal Input: 190
+  Illegal Input: 81
+  Valid Input:   -2
+
+=== Run #10 ===
+Target Valid Value: -1
+  Illegal Input: -65
+  Illegal Input: 190
+  Illegal Input: 81
+  Valid Input:   -1
+
+=== Run #11 ===
+Target Valid Value: 0
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   0
+
+=== Run #12 ===
+Target Valid Value: 1
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   1
+
+=== Run #13 ===
+Target Valid Value: 2
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   2
+
+=== Run #14 ===
+Target Valid Value: 3
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   3
+
+=== Run #15 ===
+Target Valid Value: 4
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   4
+
+=== Run #16 ===
+Target Valid Value: 5
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   5
+
+=== Run #17 ===
+Target Valid Value: 6
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   6
+
+=== Run #18 ===
+Target Valid Value: 7
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   7
+
+=== Run #19 ===
+Target Valid Value: 8
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   8
+
+=== Run #20 ===
+Target Valid Value: 9
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   9
+
+=== Run #21 ===
+Target Valid Value: 10
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   10
+
+=== Run #22 ===
+Target Valid Value: 11
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   11
+
+=== Run #23 ===
+Target Valid Value: 12
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   12
+
+=== Run #24 ===
+Target Valid Value: 13
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   13
+
+=== Run #25 ===
+Target Valid Value: 14
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   14
+
+=== Run #26 ===
+Target Valid Value: 15
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   15
+
+=== Run #27 ===
+Target Valid Value: 16
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   16
+
+=== Run #28 ===
+Target Valid Value: 17
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   17
+
+=== Run #29 ===
+Target Valid Value: 18
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   18
+
+=== Run #30 ===
+Target Valid Value: 19
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   19
+
+=== Run #31 ===
+Target Valid Value: 20
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   20
+
+=== Run #32 ===
+Target Valid Value: 21
+  Illegal Input: 74
+  Illegal Input: -92
+  Valid Input:   21
+
+=== Run #33 ===
+Target Valid Value: 22
+  Illegal Input: 155
+  Valid Input:   22
+
+=== Run #34 ===
+Target Valid Value: 23
+  Illegal Input: 155
+  Valid Input:   23
+
+=== Run #35 ===
+Target Valid Value: 24
+  Illegal Input: 155
+  Valid Input:   24
+
+=== Run #36 ===
+Target Valid Value: 25
+  Illegal Input: 155
+  Valid Input:   25
+
+=== Run #37 ===
+Target Valid Value: 26
+  Illegal Input: 155
+  Valid Input:   26
+
+=== Run #38 ===
+Target Valid Value: 27
+  Illegal Input: 155
+  Valid Input:   27
+
+=== Run #39 ===
+Target Valid Value: 28
+  Illegal Input: 155
+  Valid Input:   28
+
+=== Run #40 ===
+Target Valid Value: 29
+  Illegal Input: 155
+  Valid Input:   29
+
+=== Run #41 ===
+Target Valid Value: 30
+  Illegal Input: 155
+  Valid Input:   30
+
+=== Run #42 ===
+Target Valid Value: 31
+  Illegal Input: 155
+  Valid Input:   31
+
+=== Run #43 ===
+Target Valid Value: 32
+  Illegal Input: 155
+  Valid Input:   32
+
+=== Run #44 ===
+Target Valid Value: 33
+  Illegal Input: 155
+  Valid Input:   33
+
+=== Run #45 ===
+Target Valid Value: 34
+  Illegal Input: 155
+  Valid Input:   34
+
+=== Run #46 ===
+Target Valid Value: 35
+  Illegal Input: 155
+  Valid Input:   35
+
+=== Run #47 ===
+Target Valid Value: 36
+  Illegal Input: 155
+  Valid Input:   36
+
+=== Run #48 ===
+Target Valid Value: 37
+  Illegal Input: 155
+  Valid Input:   37
+
+=== Run #49 ===
+Target Valid Value: 38
+  Illegal Input: 155
+  Valid Input:   38
+
+=== Run #50 ===
+Target Valid Value: 39
+  Illegal Input: 155
+  Valid Input:   39
+
+=== Run #51 ===
+Target Valid Value: 40
+  Illegal Input: 155
+  Valid Input:   40
+
+=== Run #52 ===
+Target Valid Value: 41
+  Valid Input:   41
+
+=== Run #53 ===
+Target Valid Value: 42
+  Valid Input:   42
+
+=== Run #54 ===
+Target Valid Value: 43
+  Valid Input:   43
+
+=== Run #55 ===
+Target Valid Value: 44
+  Valid Input:   44
+
+=== Run #56 ===
+Target Valid Value: 45
+  Valid Input:   45
+
+=== Run #57 ===
+Target Valid Value: 46
+  Valid Input:   46
+
+=== Run #58 ===
+Target Valid Value: 47
+  Valid Input:   47
+
+=== Run #59 ===
+Target Valid Value: 48
+  Valid Input:   48
+
+=== Run #60 ===
+Target Valid Value: 49
+  Valid Input:   49
+
+=== Run #61 ===
+Target Valid Value: 50
+  Valid Input:   50
+
+=== Run #62 ===
+Target Valid Value: 51
+  Valid Input:   51
+
+=== Run #63 ===
+Target Valid Value: 52
+  Valid Input:   52
+
+=== Run #64 ===
+Target Valid Value: 53
+  Valid Input:   53
+
+=== Run #65 ===
+Target Valid Value: 54
+  Valid Input:   54
+
+=== Run #66 ===
+Target Valid Value: 55
+  Valid Input:   55
+
+=== Run #67 ===
+Target Valid Value: 56
+  Valid Input:   56
+
+=== Run #68 ===
+Target Valid Value: 57
+  Valid Input:   57
+
+=== Run #69 ===
+Target Valid Value: 58
+  Valid Input:   58
+
+=== Run #70 ===
+Target Valid Value: 59
+  Valid Input:   59
+
+=== Run #71 ===
+Target Valid Value: 60
+  Valid Input:   60
+
+=== Run #72 ===
+Target Valid Value: 61
+  Valid Input:   61
+
+=== Run #73 ===
+Target Valid Value: 62
+  Valid Input:   62
+
+=== Run #74 ===
+Target Valid Value: 63
+  Valid Input:   63
+
+=== Run #75 ===
+Target Valid Value: 64
+  Valid Input:   64
+
+=== Run #76 ===
+Target Valid Value: 65
+  Valid Input:   65
+
+=== Run #1 ===
+Target Valid Value: -10
+  Valid Input:   -10
+
+=== Run #2 ===
+Target Valid Value: -9
+  Illegal Input: 104
+  Valid Input:   -9
+
+=== Run #3 ===
+Target Valid Value: -8
+  Illegal Input: -56
+  Valid Input:   -8
+
+=== Run #4 ===
+Target Valid Value: -7
+  Illegal Input: -77
+  Illegal Input: 189
+  Valid Input:   -7
+
