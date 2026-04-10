@@ -7,6 +7,7 @@ import json
 import urllib.request
 import urllib.parse
 import urllib.error
+import os 
 
 class GitHubPanel(ttk.LabelFrame):
     """GitHub 下载功能面板"""
@@ -30,6 +31,7 @@ class GitHubPanel(ttk.LabelFrame):
         self.btn_download = None
         self.canvas = None
         self.scroll_frame = None
+        self.running = True  # ✅ 添加这个变量，支持中途停止	
     
     def _create_widgets(self):
         # 配置网格
@@ -383,34 +385,84 @@ class GitHubPanel(ttk.LabelFrame):
     
     def download_selected(self):
         """下载选中的文件"""
-        selected = [item for item in self.check_vars if item['var'].get()]
-        
-        if not selected:
-            messagebox.showwarning("提示", "请先勾选要下载的文件")
-            return
-        
-        save_dir = self.save_dir_var.get().strip()
-        if not os.path.exists(save_dir):
-            try:
-                os.makedirs(save_dir)
-            except:
-                messagebox.showerror("错误", "无法创建保存目录")
+        try:
+            # 调试日志
+            if self.log_callback:
+                self.log_callback("🔍 开始检查下载条件...", "INFO")
+            
+            selected = [item for item in self.check_vars if item['var'].get()]
+            
+            if self.log_callback:
+                self.log_callback(f"📋 选中文件数量: {len(selected)}", "INFO")
+            
+            if not selected:
+                messagebox.showwarning("提示", "请先勾选要下载的文件")
                 return
-        
-        self.btn_download.config(state="disabled")
-        
-        def worker():
-            total = len(selected)
+            
+            save_dir = self.save_dir_var.get().strip()
+            
+            if self.log_callback:
+                self.log_callback(f"📂 保存目录: {save_dir}", "INFO")
+            
+            if not save_dir:
+                messagebox.showwarning("提示", "请先选择保存目录")
+                return
+            
+            if not os.path.exists(save_dir):
+                try:
+                    os.makedirs(save_dir)
+                    if self.log_callback:
+                        self.log_callback(f"✅ 创建目录: {save_dir}", "SUCCESS")
+                except Exception as e:
+                    messagebox.showerror("错误", f"无法创建保存目录:\n{e}")
+                    return
+            
+            # 锁定按钮
+            self.btn_download.config(state="disabled")
+            
+            if self.log_callback:
+                self.log_callback("🚀 启动下载线程...", "INFO")
+            
+            # 启动下载线程
+            t = threading.Thread(target=self._download_worker, args=(selected, save_dir))
+            t.daemon = True
+            t.start()
+            
+        except Exception as e:
+            error_msg = f"下载启动失败: {e}"
+            messagebox.showerror("错误", error_msg)
+            if self.log_callback:
+                self.log_callback(f"❌ {error_msg}", "ERROR")
+            import traceback
+            traceback.print_exc()
+    
+    def _download_worker(self, selected_items, save_dir):
+        """后台下载工作线程"""
+        try:
+            total = len(selected_items)
             success = 0
             fail = 0
             
-            for idx, item_info in enumerate(selected, 1):
+            if self.log_callback:
+                self.log_callback(f"📥 开始下载 {total} 个文件...", "INFO")
+            
+            for idx, item_info in enumerate(selected_items, 1):
+                if not self.running:  # 支持中途停止
+                    break
+                    
                 filename = item_info['name']
                 file_data = item_info['data']
-                download_url = file_data['download_url']
+                download_url = file_data.get('download_url')
+                
+                if not download_url:
+                    if self.log_callback:
+                        self.log_callback(f"⚠️ {filename} 没有下载链接，跳过", "WARNING")
+                    fail += 1
+                    continue
+                
                 save_path = os.path.join(save_dir, filename)
                 
-                # 日志
+                # 更新日志
                 if self.log_callback:
                     self.log_callback(f"[{idx}/{total}] 正在下载: {filename}...", "INFO")
                 
@@ -421,9 +473,18 @@ class GitHubPanel(ttk.LabelFrame):
                     if token:
                         req.add_header("Authorization", f"token {token}")
                     
-                    with urllib.request.urlopen(req, timeout=30) as response:
-                        with open(save_path, 'wb') as f:
-                            f.write(response.read())
+                    # 添加代理支持
+                    proxy = self.proxy_var.get().strip()
+                    if proxy:
+                        proxy_handler = urllib.request.ProxyHandler({'http': proxy, 'https': proxy})
+                        opener = urllib.request.build_opener(proxy_handler)
+                        response = opener.open(req, timeout=30)
+                    else:
+                        response = urllib.request.urlopen(req, timeout=30)
+                    
+                    # 写入文件
+                    with open(save_path, 'wb') as f:
+                        f.write(response.read())
                     
                     success += 1
                     if self.log_callback:
@@ -431,16 +492,24 @@ class GitHubPanel(ttk.LabelFrame):
                 
                 except Exception as e:
                     fail += 1
+                    error_msg = f"✗ 下载失败 {filename}: {e}"
                     if self.log_callback:
-                        self.log_callback(f"✗ 下载失败 {filename}: {e}", "ERROR")
+                        self.log_callback(error_msg, "ERROR")
             
             # 完成
             self.after(0, lambda: self._on_download_complete(success, fail, save_dir))
-        
-        threading.Thread(target=worker, daemon=True).start()
-    
+            
+        except Exception as e:
+            error_msg = f"下载线程异常: {e}"
+            if self.log_callback:
+                self.log_callback(error_msg, "ERROR")
+            self.after(0, lambda: messagebox.showerror("错误", error_msg))
+            self.after(0, lambda: self.btn_download.config(state="normal"))
+
     def _on_download_complete(self, success, fail, save_dir):
         self.btn_download.config(state="normal")
+        self.running = True  # 重置状态
+        
         msg = f"批量下载完成！\n成功: {success} 个\n失败: {fail} 个\n保存路径: {save_dir}"
         messagebox.showinfo("下载完成", msg)
         if self.log_callback:
