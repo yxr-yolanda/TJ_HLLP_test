@@ -5,6 +5,8 @@ from tkinter import ttk, messagebox, scrolledtext
 import threading
 import queue
 import os
+import urllib.error
+import urllib.request
 
 from config.manager import ConfigManager
 from core.logic import DuiPaiLogic
@@ -29,7 +31,7 @@ class DuiPaiApp:
         # 绑定变量
         self._init_vars()
         
-        # 构建界面
+        # ✅ 构建界面（调用方法，而不是直接写代码）
         self._create_ui()
         
         # 启动日志监听
@@ -81,6 +83,7 @@ class DuiPaiApp:
         self.main_scroll.pack(fill="both", expand=True)
         self.root.bind("<MouseWheel>", self._on_global_mousewheel)
         
+        # ✅ 在这里定义 frame
         frame = self.main_scroll.scrollable_frame
         
         # 1. 文件配置
@@ -92,8 +95,12 @@ class DuiPaiApp:
         # 3. 对拍参数
         self._create_params_section(frame)
         
-        # 4. GitHub 面板
-        self.github_panel = GitHubPanel(frame, log_callback=self.log)
+        # 4. GitHub 面板 - 这里使用 frame
+        self.github_panel = GitHubPanel(
+            frame, 
+            log_callback=self.log, 
+            on_cloud_duipai=self.start_cloud_duipai
+        )
         self.github_panel.pack(fill="x", padx=15, pady=10)
         self.github_panel.load_config(self.config.config)
         
@@ -299,6 +306,172 @@ class DuiPaiApp:
             path = os.path.join(path, sub_var.get().strip())
         return os.path.join(path, file_var.get())
     
+    def _cloud_duipai_worker(self, repo_info, test_path, demo_path):
+        """云端批量对拍：每100个数据点为一组，下载->对拍->清理"""
+        import shutil
+        import time
+        
+        owner, repo, branch, subpath = repo_info
+        opener = self.github_panel.get_opener()
+        time_limit = float(self.time_limit_var.get())
+        compare_args = self.compare_args_var.get()
+        
+        # 批量配置
+        BATCH_SIZE = 100  # 每批处理100个文件
+        TEMP_DIR = "cloud_batch_temp"  # 临时目录
+        
+        i = 1  # 当前测试点编号
+        while self.running:
+            batch_start = i
+            batch_end = i + BATCH_SIZE - 1
+            
+            self.log(f"📦 开始拉取第 {batch_start}~{batch_end} 组数据...", "INFO")
+            
+            # 1. 创建临时目录
+            if not os.path.exists(TEMP_DIR):
+                os.makedirs(TEMP_DIR)
+            
+            # 2. 批量下载 .in 文件
+            downloaded = []
+            for idx in range(batch_start, batch_end + 1):
+                if not self.running:
+                    break
+                    
+                filename = f"{idx}.in"
+                raw_url = self._build_raw_url(owner, repo, branch, subpath, filename)
+                
+                try:
+                    req = urllib.request.Request(raw_url)
+                    with opener.open(req, timeout=10) as res:
+                        content = res.read()
+                    
+                    # 写入临时文件
+                    temp_path = os.path.join(TEMP_DIR, filename)
+                    with open(temp_path, 'wb') as f:
+                        f.write(content)
+                    downloaded.append(idx)
+                    
+                    # 每下载10个文件短暂休眠，避免触发限流
+                    if len(downloaded) % 10 == 0:
+                        time.sleep(0.2)
+                        
+                except urllib.error.HTTPError as e:
+                    if e.code == 404:
+                        # 遇到404说明数据点已穷尽
+                        self.log(f"✅ 数据点 {idx} 不存在，共拉取 {len(downloaded)} 个文件", "INFO")
+                        break
+                    else:
+                        self.log(f"⚠️ 请求 {filename} 失败 ({e.code})，跳过", "WARNING")
+                        continue
+                except Exception as e:
+                    self.log(f"⚠️ 下载 {filename} 异常: {e}，跳过", "WARNING")
+                    continue
+            
+            if not downloaded:
+                self.log("🔚 没有可处理的数据点，结束", "INFO")
+                break
+            
+            self.log(f"🚀 开始对拍 {len(downloaded)} 个数据点...", "INFO")
+            
+            # 3. 对本地文件进行对拍
+            for idx in downloaded:
+                if not self.running:
+                    break
+                    
+                filename = f"{idx}.in"
+                temp_in = os.path.join(TEMP_DIR, filename)
+                temp_out_test = os.path.join(TEMP_DIR, f"{idx}_test.out")
+                temp_out_demo = os.path.join(TEMP_DIR, f"{idx}_demo.out")
+                
+                # 运行 Test
+                cmd_test = self.logic.get_run_command(test_path)
+                st, err = self.logic.run_program(cmd_test, temp_in, temp_out_test, time_limit)
+                if st != "AC":
+                    self.log(f"💥 Test {st} 在第 {idx} 点: {err}", "ERROR")
+                    self.running = False
+                    break
+                    
+                # 运行 Demo
+                cmd_demo = self.logic.get_run_command(demo_path)
+                st, err = self.logic.run_program(cmd_demo, temp_in, temp_out_demo, time_limit)
+                if st != "AC":
+                    self.log(f"💥 Demo {st} 在第 {idx} 点: {err}", "ERROR")
+                    self.running = False
+                    break
+                    
+                # 比对
+                is_same, diff = self.logic.compare_files(temp_out_test, temp_out_demo, compare_args)
+                if not is_same:
+                    self.log(f"❌ WA 在第 {idx} 个点！", "ERROR")
+                    self.log(f"差异片段:\n{diff[:500]}...", "ERROR")
+                    self.running = False
+                    break
+                else:
+                    self.log(f"✅ AC {filename}", "SUCCESS")
+                
+                # 立即清理当前点的临时输出文件
+                for f in [temp_out_test, temp_out_demo]:
+                    try: os.remove(f)
+                    except: pass
+            
+            # 4. 清理整批临时文件
+            self.log(f"🧹 清理第 {batch_start}~{batch_end} 组临时文件...", "INFO")
+            try:
+                shutil.rmtree(TEMP_DIR)
+            except Exception as e:
+                self.log(f"⚠️ 清理临时目录失败: {e}", "WARNING")
+            
+            # 5. 更新下一批起始点
+            i = batch_end + 1
+            
+            # 批次间短暂休眠，避免频繁请求
+            if self.running:
+                time.sleep(0.5)
+        
+        # 最终清理（防止异常退出残留）
+        try:
+            if os.path.exists(TEMP_DIR):
+                shutil.rmtree(TEMP_DIR)
+        except:
+            pass
+        
+        # 结束处理
+        self.running = False
+        self.btn_start.config(state="normal")
+        self.btn_stop.config(state="disabled")
+        self.github_panel.btn_cloud.config(state="normal")
+        self.log("🏁 云端批量对拍任务结束", "CMD")
+
+    def start_cloud_duipai(self):
+        if self.running: return
+        
+        info = self.github_panel.get_repo_info()
+        if not info:
+            messagebox.showerror("错误", "请提供有效的 GitHub 仓库链接")
+            return
+        
+        test_path = self._build_path(self.test_dir_var, self.test_file_var, 
+                                     self.test_use_subfolder, self.test_subfolder_var)
+        demo_path = self._build_path(self.demo_dir_var, self.demo_file_var)
+        
+        if not os.path.exists(test_path) or not os.path.exists(demo_path):
+            messagebox.showerror("错误", "测试程序或标准程序路径无效")
+            return
+
+        self.running = True
+        self.btn_start.config(state="disabled")
+        self.btn_stop.config(state="normal")
+        self.log_text.delete('1.0', 'end')
+        self.log("☁️ 开始云端自动对拍 (1.in -> N.in)...", "CMD")
+        self.github_panel.btn_cloud.config(state="disabled")
+        
+        t = threading.Thread(
+            target=self._cloud_duipai_worker,
+            args=(info, test_path, demo_path),
+            daemon=True
+        )
+        t.start()
+
     def start_duipai(self):
         """开始对拍"""
         if self.running:
@@ -465,6 +638,14 @@ class DuiPaiApp:
         self.btn_start.config(state="normal")
         self.btn_stop.config(state="disabled")
     
+    def _build_raw_url(self, owner, repo, branch, subpath, filename):
+        """构建 GitHub Raw 文件直链"""
+        raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}"
+        if subpath:
+            raw_url += f"/{subpath}"
+        raw_url += f"/{filename}"
+        return raw_url
+
     def clean_generated_files(self):
         """清理生成的临时文件"""
         if not self.auto_clean_var.get() or not self.gen_files_generated:

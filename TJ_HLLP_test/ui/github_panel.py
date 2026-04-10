@@ -6,14 +6,15 @@ import threading
 import json
 import urllib.request
 import urllib.parse
+import urllib.error
 
 class GitHubPanel(ttk.LabelFrame):
     """GitHub 下载功能面板"""
     
-    def __init__(self, parent, log_callback=None, **kwargs):
+    def __init__(self, parent, log_callback=None, on_cloud_duipai=None, **kwargs):
         super().__init__(parent, text=" 4. 从 GitHub 下载数据生成器 ", **kwargs)
-        
         self.log_callback = log_callback
+        self.on_cloud_duipai = on_cloud_duipai
         self._setup_vars()
         self._create_widgets()
     
@@ -70,7 +71,72 @@ class GitHubPanel(ttk.LabelFrame):
             self, text="下载选中 (0)", command=self.download_selected, state="disabled"
         )
         self.btn_download.grid(row=4, column=3, padx=5, pady=5)
+        # ✅ 新增：云端自动对拍按钮
+        self.btn_cloud = ttk.Button(self, text="☁️ 云端自动对拍 (1.in ~ N.in)", 
+                                    command=self._trigger_cloud_duipai)
+        self.btn_cloud.grid(row=5, column=1, columnspan=3, padx=5, pady=5, sticky="ew")
     
+    def get_repo_info(self):
+        """解析当前 GitHub 链接，返回 owner, repo, branch, subpath"""
+        url = self.url_var.get().strip()
+        if not url.startswith("http"): url = "https://" + url
+        
+        parsed = urllib.parse.urlparse(url)
+        parts = [p for p in parsed.path.split("/") if p]
+        if parts and parts[0] == "github.com": parts = parts[1:]
+        if len(parts) < 2: return None
+        
+        owner, repo = parts[0], parts[1]
+        branch = self.branch_var.get().strip() or "main"
+        
+        subpath = ""
+        if len(parts) > 2:
+            if parts[2] == 'tree' and len(parts) > 4: subpath = "/".join(parts[4:])
+            elif parts[2] != 'tree': subpath = "/".join(parts[2:])
+        return owner, repo, branch, subpath
+
+    def get_opener(self):
+        """构建支持代理和 Token 的 Opener（供主程序调用）"""
+        handlers = []
+        
+        # 处理代理
+        proxy_url = self.proxy_var.get().strip()
+        if proxy_url:
+            handlers.append(urllib.request.ProxyHandler({
+                'http': proxy_url, 
+                'https': proxy_url
+            }))
+        
+        # 处理 Token
+        token = self.token_var.get().strip()
+        if token:
+            class TokenHandler(urllib.request.BaseHandler):
+                def __init__(self, token_str):
+                    super().__init__()
+                    self.token = token_str
+                
+                def http_request(self, req):
+                    req.add_header("Authorization", f"token {self.token}")
+                    req.add_header("User-Agent", "DuiPai-Tool")
+                    return req
+                
+                https_request = http_request
+            handlers.append(TokenHandler(token))
+        else:
+            class UAHandler(urllib.request.BaseHandler):
+                def http_request(self, req):
+                    req.add_header("User-Agent", "DuiPai-Tool")
+                    return req
+                https_request = http_request
+            handlers.append(UAHandler())
+
+        return urllib.request.build_opener(*handlers)
+
+    def _trigger_cloud_duipai(self):
+        """按钮点击触发"""
+        if self.on_cloud_duipai:
+            self.on_cloud_duipai()
+
     def _create_file_list(self):
         """创建可滚动的复选框列表"""
         container = ttk.Frame(self, relief="sunken", borderwidth=1)
