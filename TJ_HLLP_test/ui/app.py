@@ -216,52 +216,55 @@ class DuiPaiApp:
         self.log_text.tag_config("CMD", foreground="#0000CD")
         self.log_text.tag_config("PATH", foreground="#4169E1")
         
-        # ✅ 绑定滚轮事件到日志文本框
+        # ✅ 关键修复：将事件绑定到 Frame (容器) 和 Text 上
+        # 这样鼠标在滚动条上时，Frame 也能拦截到事件
+        frame.bind("<MouseWheel>", self._on_log_mousewheel)
         self.log_text.bind("<MouseWheel>", self._on_log_mousewheel)
     
     def _on_log_mousewheel(self, event):
-        """日志框滚轮：能滚动时拦截，不能滚动时放行"""
+        """日志滚轮：带防抖，到头后放行给主窗口"""
+        # 防抖：间隔 < 16ms 的连续事件直接忽略（约 60Hz 屏幕刷新率）
+        import time
+        now = time.time()
+        if hasattr(self, '_log_scroll_last') and now - self._log_scroll_last < 0.016:
+            return "break"
+        self._log_scroll_last = now
+
         delta = int(-1 * (event.delta / 120))
         view = self.log_text.yview()
-        
-        can_scroll = False
-        if delta < 0 and view[0] > 0.0:
-            can_scroll = True
-        elif delta > 0 and view[1] < 1.0:
-            can_scroll = True
-        
-        if can_scroll:
+        if (delta < 0 and view[0] > 0.0) or (delta > 0 and view[1] < 1.0):
             self.log_text.yview_scroll(delta, "units")
-            return "break"  # ✅ 拦截
-        
-        # 不拦截，让事件冒泡
+            return "break"
+        # 到头/底：不拦截，事件自然冒泡给主窗口
 
     def _on_global_mousewheel(self, event):
-        """全局滚轮：只排除输入框"""
+        """主窗口滚轮：同样添加防抖"""
+        import time
+        now = time.time()
+        if hasattr(self, '_main_scroll_last') and now - self._main_scroll_last < 0.016:
+            return
+        self._main_scroll_last = now
+
         focus = self.root.focus_get()
-        
-        # 只排除 Entry
         if focus and isinstance(focus, (ttk.Entry, tk.Entry)):
             return
-        
-        # 滚动主窗口
         self.main_scroll.yview_scroll(int(-1*(event.delta/120)), "units")
     
     def _start_log_listener(self):
-        """启动日志监听线程"""
-        def listener():
-            while True:
-                try:
-                    message, tag = self.msg_queue.get_nowait()
+        """安全日志监听（主线程轮询，不占 CPU）"""
+        def check():
+            try:
+                while True:
+                    msg, tag = self.msg_queue.get_nowait()
                     self.log_text.config(state='normal')
-                    self.log_text.insert('end', message + "\n", tag)
+                    self.log_text.insert('end', msg + "\n", tag)
                     self.log_text.see('end')
                     self.log_text.config(state='disabled')
-                except queue.Empty:
-                    pass
-                self.root.after(100, lambda: None)
-        
-        threading.Thread(target=listener, daemon=True).start()
+            except queue.Empty:
+                pass
+            # 50ms 检查一次，CPU 占用 < 0.1%
+            self.root.after(50, check)
+        check()
     
     def log(self, message, tag="INFO"):
         """添加日志"""

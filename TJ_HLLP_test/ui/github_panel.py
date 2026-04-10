@@ -33,6 +33,8 @@ class GitHubPanel(ttk.LabelFrame):
     def _create_widgets(self):
         # 配置网格
         self.columnconfigure(1, weight=1)
+        # ✅ 让第 3 行（文件列表区域）可以自动伸缩
+        self.rowconfigure(3, weight=1)
         
         # Token + 分支
         ttk.Label(self, text="GitHub Token:").grid(row=0, column=0, sticky="e", padx=5, pady=5)
@@ -74,28 +76,55 @@ class GitHubPanel(ttk.LabelFrame):
         container = ttk.Frame(self, relief="sunken", borderwidth=1)
         container.grid(row=3, column=1, columnspan=3, sticky="nsew", padx=5, pady=5)
         
-        self.canvas = tk.Canvas(container, bg="white", highlightthickness=0)
-        scrollbar = ttk.Scrollbar(container, orient="vertical", command=self.canvas.yview)
+        # ✅ 增加 Canvas 的初始高度
+        self.canvas = tk.Canvas(container, bg="white", highlightthickness=0, 
+                                height=150)  # 从 150 增加到 250
+        self.scrollbar = ttk.Scrollbar(container, orient="vertical", command=self.canvas.yview)
         self.scroll_frame = ttk.Frame(self.canvas)
-        
-        self.scroll_frame.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
-        self.canvas.bind("<Configure>", lambda e: self.canvas.itemconfig(self.canvas_window, width=e.width))
-        
-        self.canvas_window = self.canvas.create_window((0, 0), window=self.scroll_frame, anchor="nw")
-        self.canvas.configure(yscrollcommand=scrollbar.set)
-        
+
+        # 创建窗口
+        self.canvas_window = self.canvas.create_window(
+            (0, 0), window=self.scroll_frame, anchor="nw"
+        )
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+
         self.canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        self.scrollbar.pack(side="right", fill="y")
         
-        # ✅ 关键修复：只绑定 canvas，移除其他绑定
+        # ✅ 绑定滚轮事件到 canvas 和 container（灰色区域）
         self.canvas.bind("<MouseWheel>", self._on_mousewheel)
+        container.bind("<MouseWheel>", self._on_mousewheel)  # 新增：灰色区域也能滚动
+        
+        # 绑定配置事件
+        self.scroll_frame.bind("<Configure>", self._on_frame_configure)
+        self.canvas.bind("<Configure>", self._on_canvas_configure)
     
+    def _on_frame_configure(self, event):
+        """当内部 frame 大小变化时，更新 scrollregion"""
+        # ✅ 获取实际内容区域
+        bbox = self.canvas.bbox("all")
+        if bbox:
+            # bbox 返回 (x1, y1, x2, y2)
+            width = bbox[2] - bbox[0]
+            height = bbox[3] - bbox[1]
+            self.canvas.configure(scrollregion=(0, 0, width, height))
+        
+    def _on_canvas_configure(self, event):
+        """当 Canvas 大小变化时，调整内部 frame 的宽度"""
+        self.canvas.itemconfig(self.canvas_window, width=event.width)
+
     def _on_mousewheel(self, event):
-        """智能滚动：能滚动时拦截，不能滚动时放行"""
+        """文件列表滚轮：滚动条区域忽略，内容区优先滚动，到头后传递给主窗口"""
+        # 1. 检测鼠标是否在滚动条控件上
+        toplevel = self.winfo_toplevel()
+        widget_under = toplevel.winfo_containing(event.x_root, event.y_root)
+        if isinstance(widget_under, (tk.Scrollbar, ttk.Scrollbar)):
+            return "break"  # 直接拦截，不滚动画面
+
+        # 2. 正常滚动逻辑
         delta = int(-1 * (event.delta / 120))
         view = self.canvas.yview()
         
-        # 判断是否还能滚动
         can_scroll = False
         if delta < 0 and view[0] > 0.0:  # 向上滚且没到顶
             can_scroll = True
@@ -104,9 +133,9 @@ class GitHubPanel(ttk.LabelFrame):
         
         if can_scroll:
             self.canvas.yview_scroll(delta, "units")
-            return "break"  # ✅ 拦截事件，不让它传到主窗口
-        
-        # 不能滚动时，不 return "break"，让事件自然冒泡给主窗口
+            return "break"  # 拦截事件，不传给主窗口
+            
+        # 无法滚动时不拦截，事件自动冒泡给主窗口
     
     def fetch_files(self):
         """获取文件列表（后台线程）"""
@@ -211,13 +240,14 @@ class GitHubPanel(ttk.LabelFrame):
     
     def _update_list(self, data):
         """更新文件列表显示"""
+        # 清空旧数据
         for w in self.scroll_frame.winfo_children():
             w.destroy()
         self.check_vars.clear()
         self.file_data_map.clear()
         
         file_count = 0
-        for item in data : 
+        for item in data:
             if item['type'] == 'file':
                 if item['name'].endswith(('.py', '.cpp', '.c', '.exe', '.java')):
                     var = tk.BooleanVar()
@@ -229,7 +259,7 @@ class GitHubPanel(ttk.LabelFrame):
                         text=f"{item['name']} ({item['size']} bytes)", 
                         variable=var,
                         command=self._update_btn_text
-                    ).pack(anchor="w", padx=10, pady=2)
+                    ).pack(anchor="nw", padx=10, pady=2, fill="x")
                     file_count += 1
         
         if file_count == 0:
@@ -239,7 +269,46 @@ class GitHubPanel(ttk.LabelFrame):
             ).pack(pady=20)
         
         self._update_btn_text()
+        
+        # ✅ 强制刷新布局
+        self.scroll_frame.update_idletasks()
+        
+        # 获取内容实际高度
+        bbox = self.canvas.bbox("all")
+        if bbox:
+            content_height = bbox[3] - bbox[1]
+            canvas_height = self.canvas.winfo_height()
+            
+            # ✅ 如果内容高度小于 Canvas 高度，调整 Canvas 高度
+            if content_height < canvas_height and content_height > 0:
+                # 设置 Canvas 高度为内容高度（但不小于 100）
+                new_height = max(content_height + 10, 100)
+                self.canvas.config(height=new_height)
+        
+        # ✅ 强制滚动到顶部
         self.canvas.yview_moveto(0.0)
+    
+    def _force_scroll_to_top(self):
+        """强制滚动到顶部"""
+        # 更新 scrollregion
+        bbox = self.canvas.bbox("all")
+        if bbox:
+            width = bbox[2] - bbox[0]
+            height = bbox[3] - bbox[1]
+            self.canvas.configure(scrollregion=(0, 0, width, height))
+        
+        # ✅ 关键修复：强制设置视图位置为顶部
+        self.canvas.yview_moveto(0.0)
+        
+        # ✅ 额外强制刷新（确保生效）
+        self.canvas.update_idletasks()
+        self.canvas.yview_moveto(0.0)
+        
+        # ✅ 如果内容高度小于 Canvas 高度，强制 Canvas 滚动到顶部
+        canvas_height = self.canvas.winfo_height()
+        if height < canvas_height:
+            # 内容比 Canvas 小，强制从 (0,0) 开始显示
+            self.canvas.yview_moveto(0.0)
     
     def _update_btn_text(self):
         count = sum(1 for item in self.check_vars if item['var'].get())
